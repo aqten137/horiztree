@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,24 +8,50 @@
   
   </head>
   <body>
-    <!-- プレミアム感のある背景の装飾 -->
+    <!-- Premium background decoration -->
     <div class="bg-shape bg-shape-1"></div>
     <div class="bg-shape bg-shape-2"></div>
     
-    <!-- 操作パネル -->
+    <!-- Control panel -->
     <div class="control-panel">
-      <button id="btn-help" class="btn">ヘルプ</button>
+      <button id="btn-help" class="btn">Help</button>
       <div class="depth-slider-container btn">
-        <label for="input-depth" id="label-depth">表示: すべて</label>
+        <label for="input-depth" id="label-depth">Display: All</label>
         <input type="range" id="input-depth" min="1" max="6" value="6" step="1">
       </div>
-      <button id="btn-clear" class="btn btn-danger">新規ツリー</button>
-      <button id="btn-import" class="btn">ファイルをロード</button>
-      <button id="btn-export" class="btn btn-primary">ファイルに保存</button>
+      <button id="btn-clear" class="btn btn-danger">New Tree</button>
+      <button id="btn-import" class="btn">Load File</button>
+      <button id="btn-export" class="btn btn-primary">Save File</button>
       <input type="file" id="import-file" accept=".json" style="display: none;" />
     </div>
 
     <div id="app"></div>
+
+    <!-- Templates -->
+    <template id="tmpl-confirm-dialog">
+      <div class="confirm-overlay">
+        <div class="confirm-dialog">
+          <p class="confirm-message"></p>
+          <div class="confirm-buttons">
+            <button class="btn btn-cancel"></button>
+            <button class="btn btn-danger btn-ok"></button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template id="tmpl-help-dialog">
+      <div class="confirm-overlay">
+        <div class="confirm-dialog help-dialog">
+          <h3 class="help-title"></h3>
+          <ul class="help-list"></ul>
+          <div class="confirm-buttons help-buttons">
+            <button class="btn btn-primary btn-close"></button>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

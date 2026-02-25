@@ -1,6 +1,7 @@
 import './style.css';
 import { save, open } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
+import { t, setupUIStrings, currentLang, translations } from './i18n.js';
 
 function generateId() {
   return 'n_' + Math.random().toString(36).substr(2, 9);
@@ -12,7 +13,7 @@ let visibleMaxDepth = Infinity;
 function getInitialState() {
   return {
     id: 'root',
-    text: '無題',
+    text: t('defaultNodeText'),
     children: []
   };
 }
@@ -134,10 +135,6 @@ function deleteNode(id, text) {
     targetFocusId = ctx.parent.id;
   }
 
-  // 削除処理と、もし子がいれば兄弟として引き上げる処理 (Workflowy等に準拠)
-  // 今回はシンプルに子要素もまとめて削除、もしくは子を残すか？
-  // Tree2では親を消すと子も消えるか、子が引き上げられる。
-  // 今回は実装をシンプルにするため、子がいれば削除不可とするか、まとめて消す。
   if (ctx.node.children.length > 0) return; // 子がいる場合は削除しない（または別の動作）
 
   ctx.siblings.splice(ctx.index, 1);
@@ -157,13 +154,13 @@ function handleDragStart(e, id) {
   // 見た目を半透明にする
   setTimeout(() => {
     const el = document.querySelector(`.node-content[data-id="${id}"]`);
-    if (el) el.style.opacity = '0.5';
+    if (el) el.classList.add('is-dragging');
   }, 0);
 }
 
 function handleDragEnd(e, id) {
   const el = document.querySelector(`.node-content[data-id="${id}"]`);
-  if (el) el.style.opacity = '1';
+  if (el) el.classList.remove('is-dragging');
   draggedNodeId = null;
   // ドロップ先ハイライトのクリア
   document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
@@ -374,13 +371,14 @@ function renderNode(node, depth = 0, isRoot = false) {
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
   });
+
   content.appendChild(resizer);
 
   const input = document.createElement('div');
   input.contentEditable = 'true';
   input.className = 'node-input';
   input.textContent = node.text || '';
-  input.dataset.placeholder = isRoot ? 'ルートノード...' : 'テキストを入力...';
+  input.dataset.placeholder = isRoot ? t('placeholderRoot') : t('placeholderNode');
   input.dataset.nodeId = node.id;
 
   // データ同期
@@ -456,12 +454,7 @@ function renderNode(node, depth = 0, isRoot = false) {
       // 隠れている子ノードがあることを示すインジケーター
       const indicator = document.createElement('div');
       indicator.className = 'hidden-indicator';
-      indicator.textContent = `... ${node.children.length} 個の隠しノード`;
-      // インジケーターのスタイル（style.cssに記述しても良いが、ここでは直接指定）
-      indicator.style.fontSize = '12px';
-      indicator.style.color = 'var(--text-muted)';
-      indicator.style.padding = '4px 0';
-      indicator.style.userSelect = 'none';
+      indicator.textContent = t('hiddenNodes', { count: node.children.length });
       childrenContainer.appendChild(indicator);
     }
   }
@@ -502,39 +495,26 @@ function render() {
 // --- Custom Confirm Dialog ---
 function showConfirmDialog(message) {
   return new Promise((resolve) => {
-    const overlay = document.createElement('div');
-    overlay.className = 'confirm-overlay';
+    const tmpl = document.getElementById('tmpl-confirm-dialog');
+    const overlay = tmpl.content.cloneNode(true).firstElementChild;
 
-    const dialog = document.createElement('div');
-    dialog.className = 'confirm-dialog';
-
-    const text = document.createElement('p');
+    const text = overlay.querySelector('.confirm-message');
     text.textContent = message;
 
-    const btnContainer = document.createElement('div');
-    btnContainer.className = 'confirm-buttons';
-
-    const btnCancel = document.createElement('button');
-    btnCancel.className = 'btn';
-    btnCancel.textContent = 'キャンセル';
+    const btnCancel = overlay.querySelector('.btn-cancel');
+    btnCancel.textContent = t('btnCancel');
     btnCancel.onclick = () => {
-      document.body.removeChild(overlay);
+      overlay.remove();
       resolve(false);
     };
 
-    const btnOk = document.createElement('button');
-    btnOk.className = 'btn btn-danger';
-    btnOk.textContent = '初期化する';
+    const btnOk = overlay.querySelector('.btn-ok');
+    btnOk.textContent = t('btnInitialize');
     btnOk.onclick = () => {
-      document.body.removeChild(overlay);
+      overlay.remove();
       resolve(true);
     };
 
-    btnContainer.appendChild(btnCancel);
-    btnContainer.appendChild(btnOk);
-    dialog.appendChild(text);
-    dialog.appendChild(btnContainer);
-    overlay.appendChild(dialog);
     document.body.appendChild(overlay);
 
     // auto focus cancel button to prevent accidental clicks
@@ -544,29 +524,14 @@ function showConfirmDialog(message) {
 
 // --- Help Dialog ---
 function showHelpDialog() {
-  const overlay = document.createElement('div');
-  overlay.className = 'confirm-overlay';
+  const tmpl = document.getElementById('tmpl-help-dialog');
+  const overlay = tmpl.content.cloneNode(true).firstElementChild;
 
-  const dialog = document.createElement('div');
-  dialog.className = 'confirm-dialog help-dialog';
+  const title = overlay.querySelector('.help-title');
+  title.textContent = t('helpTitle');
 
-  const title = document.createElement('h3');
-  title.textContent = 'キーボードショートカット';
-  title.style.marginBottom = '20px';
-  title.style.color = 'var(--text-color)';
-
-  const list = document.createElement('ul');
-  list.className = 'help-list';
-  const shortcuts = [
-    { key: 'Enter', desc: '下に新しいノードを追加' },
-    { key: 'Shift + Enter', desc: 'ノード内で改行' },
-    { key: 'Tab', desc: '右にインデント（子ノードにする）' },
-    { key: 'Shift + Tab', desc: '左にアウトデント（親の兄弟にする）' },
-    { key: 'Backspace', desc: 'ノードを削除（空欄の時のみ）' },
-    { key: 'Shift + ↑ / ↓', desc: '同階層のノード間でフォーカス移動' },
-    { key: 'Shift + ←', desc: '親ノードにフォーカス移動' },
-    { key: 'Shift + →', desc: '子ノードにフォーカス移動（なければ追加）' }
-  ];
+  const list = overlay.querySelector('.help-list');
+  const shortcuts = translations[currentLang].shortcuts;
 
   shortcuts.forEach(s => {
     const li = document.createElement('li');
@@ -574,22 +539,12 @@ function showHelpDialog() {
     list.appendChild(li);
   });
 
-  const btnContainer = document.createElement('div');
-  btnContainer.className = 'confirm-buttons';
-  btnContainer.style.marginTop = '24px';
-
-  const btnClose = document.createElement('button');
-  btnClose.className = 'btn btn-primary';
-  btnClose.textContent = '閉じる';
+  const btnClose = overlay.querySelector('.btn-close');
+  btnClose.textContent = t('btnClose');
   btnClose.onclick = () => {
-    document.body.removeChild(overlay);
+    overlay.remove();
   };
 
-  btnContainer.appendChild(btnClose);
-  dialog.appendChild(title);
-  dialog.appendChild(list);
-  dialog.appendChild(btnContainer);
-  overlay.appendChild(dialog);
   document.body.appendChild(overlay);
 
   btnClose.focus();
@@ -649,7 +604,7 @@ async function onClickImport() {
 }
 
 async function onClickClear() {
-  if (await showConfirmDialog('全てのデータを削除して新しいプロジェクトを開始しますか？')) {
+  if (await showConfirmDialog(t('confirmClear'))) {
     state = getInitialState();
     focusedNodeId = null;
     saveState();
@@ -661,9 +616,9 @@ function updateDepthLabel(val) {
   const label = document.getElementById('label-depth');
   if (!label) return;
   if (val === '6' || val === 6 || val === Infinity) {
-    label.textContent = '表示: すべて';
+    label.textContent = t('depthAll');
   } else {
-    label.textContent = `表示: ${val}階層`;
+    label.textContent = t('depthLevel', { val });
   }
 }
 
@@ -691,7 +646,7 @@ function loadFromJson(jsonStr) {
     saveState();
     render();
   } catch (err) {
-    alert('無効なファイル形式です。JSONファイルを選択してください。');
+    alert(t('errorInvalidJson'));
   }
 }
 
@@ -729,5 +684,6 @@ function setupControls() {
 }
 
 loadState();
+setupUIStrings();
 setupControls();
 render();

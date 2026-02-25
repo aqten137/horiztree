@@ -463,3 +463,22 @@ body {
   display: inline-block;
 }
 
+.hidden-indicator {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 0;
+  user-select: none;
+}
+
+.help-title {
+  margin-bottom: 20px;
+  color: var(--text-color);
+}
+
+.help-buttons {
+  margin-top: 24px;
+}
+
+.node-content.is-dragging {
+  opacity: 0.5;
+}
