@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HorizTree - Horizontal Outliner</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  
+  </head>
+  <body>
+    <!-- プレミアム感のある背景の装飾 -->
+    <div class="bg-shape bg-shape-1"></div>
+    <div class="bg-shape bg-shape-2"></div>
+    
+    <!-- 操作パネル -->
+    <div class="control-panel">
+      <button id="btn-help" class="btn">ヘルプ</button>
+      <div class="depth-slider-container btn">
+        <label for="input-depth" id="label-depth">表示: すべて</label>
+        <input type="range" id="input-depth" min="1" max="6" value="6" step="1">
+      </div>
+      <button id="btn-clear" class="btn btn-danger">新規ツリー</button>
+      <button id="btn-import" class="btn">ファイルをロード</button>
+      <button id="btn-export" class="btn btn-primary">ファイルに保存</button>
+      <input type="file" id="import-file" accept=".json" style="display: none;" />
+    </div>
+
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
